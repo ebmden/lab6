@@ -86,7 +86,7 @@ def parse_request():
     ...
 
     :return:
-    :author:
+    :author: Lucas Gral
     """
 
 
@@ -104,7 +104,7 @@ def get_request_line():
     ...
 
     :return:
-    :author:
+    :author: Lucas Gral
     """
 
 
@@ -113,7 +113,7 @@ def get_header_fields():
     ...
 
     :return:
-    :author:
+    :author: Lucas Gal
     """
 
 
@@ -122,7 +122,7 @@ def http_get_body():
     ...
 
     :return:
-    :author:
+    :author: Eden Basso
     """
 
 def execute_request():
@@ -130,7 +130,7 @@ def execute_request():
     ....
 
     :return:
-    :author:
+    :author: Eden Basso
     """
 
 # ** Do not modify code below this line.  You should add additional helper methods above this line.
