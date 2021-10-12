@@ -79,43 +79,85 @@ def handle_request(request_socket):  # complete this method to parse a request a
     :return: None
     """
 
-    execute_request(parse_request())
+    #execute_request(parse_request())
+    #testing parse response (above line should be called once execute_request is ready):
+    print(parse_request(request_socket))
 
-def parse_request():
+def http_get_word(request_socket):
+    """
+    Gets the next string of characters surrounded by space or ending in \r\n
+    Returns the string, and also whether it's the end of the line.
+    This could be used instead of next_byte or socket.recv
+
+    :param socket.pyi http_client_socket: client data socket
+    :return: (word, endOfLine)
+    :rtype: Any
+    :author: Eden Basso
+    """
+
+    last_byte = b''
+    word = b''
+    while (last_byte := request_socket.recv(1)) != b' ':
+        if last_byte == b'\r':
+            if (last_byte := request_socket.recv(1)) == b'\n':
+                return word, True
+            else:
+                word += b'\r' + last_byte
+        else:
+            word += last_byte
+    return word, False
+
+def parse_request(request_socket):
+    """
+    ...
+
+    :return: verb, resource, fields, body
+    :author: Lucas Gral
+    """
+
+    (verb, resource) = get_request_line(request_socket)
+    fields = get_header_fields(request_socket)
+    body = b'body placeholder'
+
+    return verb, resource, fields, body
+
+def get_request_line(request_socket):
     """
     ...
 
     :return:
     :author: Lucas Gral
     """
+    verb = http_get_word(request_socket)[0]
+    resource = http_get_word(request_socket)[0]
 
+    #go to end of request line (so fields can be read after)
+    while http_get_word(request_socket)[1] == False:
+        pass
 
-def http_get_word():
-    """
-    ...
+    return verb, resource
 
-    :return:
-    :author:
-    """
-
-
-def get_request_line():
-    """
-    ...
-
-    :return:
-    :author: Lucas Gral
-    """
-
-
-def get_header_fields():
+def get_header_fields(request_socket):
     """
     ...
 
     :return:
     :author: Lucas Gal
     """
+    fields = dict()
 
+    lastWord = None
+    while (lastWord := http_get_word(request_socket))[0] != b'':
+        key = lastWord[0]
+        value = b''
+
+        while (lastWord := http_get_word(request_socket))[1] == False:
+            value += lastWord[0] + b' '
+        value += lastWord[0]
+
+        fields[key] = value
+
+    return fields
 
 def http_get_body():
     """
