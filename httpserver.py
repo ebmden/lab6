@@ -81,44 +81,6 @@ def handle_request(request_socket):  # complete this method to parse a request a
 
     execute_request(parse_request())
 
-# ** Do not modify code below this line.  You should add additional helper methods above this line.
-
-# Utility functions
-# You may use these functions to simplify your code.
-
-
-def get_mime_type(file_path):
-    """
-    Try to guess the MIME type of a file (resource), given its path (primarily its file extension)
-
-    :param file_path: string containing path to (resource) file, such as './abc.html'
-    :return: If successful in guessing the MIME type, a string representing the content type, such as 'text/html'
-             Otherwise, None
-    :rtype: int or None
-    """
-
-    mime_type_and_encoding = mimetypes.guess_type(file_path)
-    mime_type = mime_type_and_encoding[0]
-    return mime_type
-
-
-def get_file_size(file_path):
-    """
-    Try to get the size of a file (resource) as number of bytes, given its path
-
-    :param file_path: string containing path to (resource) file, such as './abc.html'
-    :return: If file_path designates a normal file, an integer value representing the the file size in bytes
-             Otherwise (no such file, or path is not a file), None
-    :rtype: int or None
-    """
-
-    # Initially, assume file does not exist
-    file_size = None
-    if os.path.isfile(file_path):
-        file_size = os.stat(file_path).st_size
-    return file_size
-
-
 def parse_request():
     """
     ...
@@ -170,6 +132,45 @@ def execute_request():
     :return:
     :author:
     """
+
+# ** Do not modify code below this line.  You should add additional helper methods above this line.
+
+# Utility functions
+# You may use these functions to simplify your code.
+
+
+def get_mime_type(file_path):
+    """
+    Try to guess the MIME type of a file (resource), given its path (primarily its file extension)
+
+    :param file_path: string containing path to (resource) file, such as './abc.html'
+    :return: If successful in guessing the MIME type, a string representing the content type, such as 'text/html'
+             Otherwise, None
+    :rtype: int or None
+    """
+
+    mime_type_and_encoding = mimetypes.guess_type(file_path)
+    mime_type = mime_type_and_encoding[0]
+    return mime_type
+
+
+def get_file_size(file_path):
+    """
+    Try to get the size of a file (resource) as number of bytes, given its path
+
+    :param file_path: string containing path to (resource) file, such as './abc.html'
+    :return: If file_path designates a normal file, an integer value representing the the file size in bytes
+             Otherwise (no such file, or path is not a file), None
+    :rtype: int or None
+    """
+
+    # Initially, assume file does not exist
+    file_size = None
+    if os.path.isfile(file_path):
+        file_size = os.stat(file_path).st_size
+    return file_size
+
+
 main()
 
 # Replace this line with your comments on the lab
