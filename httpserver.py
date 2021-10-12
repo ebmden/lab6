@@ -78,7 +78,7 @@ def handle_request(request_socket):
     :return: None
     """
 
-    pass  # Replace this line with your code
+    execute_request(parse_request())
 
 # ** Do not modify code below this line.  You should add additional helper methods above this line.
 
@@ -121,3 +121,19 @@ def get_file_size(file_path):
 main()
 
 # Replace this line with your comments on the lab
+
+#temporary
+"""
+def execute_request(http_socket, request_data):
+    request_verb = request_data[0]
+    request_resource = request_data[1]
+    request_fields = request_data[2]
+    request_body = request_data[3]
+
+    if(request_verb == 'GET'):
+        execute_request_get(http_socket, request_resource)
+    elif(request_verb == etc):
+        ...
+    else:
+        print("Unknown request:", request_verb)
+"""
