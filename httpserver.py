@@ -79,7 +79,7 @@ def handle_request(request_socket):  # complete this method to parse a request a
     :return: None
     """
 
-    #execute_request(parse_request())
+    execute_request(parse_request(request_socket))
     #testing parse response (above line should be called once execute_request is ready):
     print(parse_request(request_socket))
 
@@ -117,7 +117,7 @@ def parse_request(request_socket):
 
     (verb, resource) = get_request_line(request_socket)
     fields = get_header_fields(request_socket)
-    body = b'body placeholder'
+    body = http_get_body(request_socket)
 
     return verb, resource, fields, body
 
@@ -159,21 +159,37 @@ def get_header_fields(request_socket):
 
     return fields
 
-def http_get_body():
+def http_get_body(request_socket):
     """
-    ...
+    Parses through the request to return the body of the resource
 
-    :return:
+    :param socket.pyi request_socket: socket representing TCP connection from the HTTP client_socket
+    :return: the body of the resource as a bytes object
+    :rtype: bytes
     :author: Eden Basso
     """
+    # callee of parse_request *currently has a placeholder
+    # calls http_get_word to parse through body and gets the word and if its the end of a line or not
+    # param request_socket so it can be passed to get_word
+    # loop that checks to see if end_of_line == False while also assigning http_get_word to body
+    request_body = b''
+    byte_temp = b''
+    while (byte_temp := http_get_word(request_socket))[0] != b'':
+        request_body += byte_temp
+    return request_body
 
-def execute_request():
+
+def execute_request(request_socket, verb, resource, fields, body):
     """
-    ....
+    Uses information from the request to execute the request and send the correct file to the client
 
-    :return:
+    :return: info about the http request that allows the file to be returned to client
+    :rtype: tuple
     :author: Eden Basso
     """
+    # callee of handle_request
+    # this method will need all info nessasary in order to determine which file to send to the client, and to to send the file to the client
+    
 
 # ** Do not modify code below this line.  You should add additional helper methods above this line.
 
