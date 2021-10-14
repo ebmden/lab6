@@ -52,6 +52,10 @@ def http_server_setup(port):
     try:
         while True:
             request_socket, request_address = server_socket.accept()
+            ##########################################################
+            # delete later: This is the the server sock(listen) acc the request from client
+            # it assigns values so the server knows where to send packets
+            ################################################################3
             print('connection from {0} {1}'.format(request_address[0], request_address[1]))
             # Create a new thread, and set up the handle_request method and its argument (in a tuple)
             request_handler = threading.Thread(target=handle_request, args=(request_socket,))
@@ -161,7 +165,7 @@ def get_header_fields(request_socket):
 
 def http_get_body(request_socket):
     """
-    Parses through the request to return the body of the resource
+    Gets the body of the client's request for good measure
 
     :param socket.pyi request_socket: socket representing TCP connection from the HTTP client_socket
     :return: the body of the resource as a bytes object
@@ -179,10 +183,11 @@ def http_get_body(request_socket):
     return request_body
 
 
-def execute_request(request_socket):
+def execute_request(request_socket, verb, resource, fields, body):
     """
     Uses information from the request to execute the request and send the correct file to the client
 
+    :param socket.pyi request_socket: socket representing TCP connection from the HTTP client_socket
     :return: info about the http request that allows the file to be returned to client
     :rtype: tuple
     :author: Eden Basso
@@ -191,15 +196,16 @@ def execute_request(request_socket):
     # this method will need all info nessasary in order to determine which file to send to the client, and to to send the file to the client
 
 
-def get_status_code(resource, headers, version):
-    """
-    ...
 
-    :param:
-    :param:
-    :param:
-    :return:
-    :rtype:
+def get_status_code(resource, request_headers, verb):
+    """
+    Checks the resource, headers, and http version from the client's request and returns the appropriate status code
+
+    :param resource: the URL from the client's request
+    :param request_headers: the headers from the client that will be checked to send the appropriate status in the resp.
+    :param verb: HTTP version that will be compared with the server's version to ensure correct protocol usage
+    :return: status such as 200 ok, 404 not found, 400 bad connection
+    :rtype: str
     :author:
     """
     # valid resource?
@@ -207,26 +213,38 @@ def get_status_code(resource, headers, version):
     # valid ver?
 
 
-def get_resource_body(resource):  # will need body in parsed bytes
+def get_response_body(resource):  # will need body in parsed bytes
     """
-    ...
+    Gets the body from the resource and returns it to be sent to the client in an http response
 
-    :param:
-    :param:
-    """
-
-
-def write_response_headers(time_hearder, conection_header, mime_header, content_type_header):
-    """
-    ...
-
+    :param resource: the URL from the client's response that will be used to return the correct file
+    :return: parsed through file that matches the client's request
+    :rtype: bytes
+    :author:
     """
 
 
-def send_response(socket, response):
+def write_response_headers(time_hearder, conection_header, content_type_header, content_len_header):
     """
-    ...
+    Writes the headers of the response that contains the time, non-persist connection, mime type, and cont. length
 
+    :param time_header: proper RFC format of the time the request was satisfied
+    :param connection_header: header indicating a persistent connection was used
+    :param content_type_header: header indicating the mime type of the file being sent
+    :param content_len_header: header indicating the length of the body of the response
+    :return: all of the headers needed for the http server's response
+    :rtype: bytes
+    :author:
+    """
+
+
+def send_response(request_socket, response):
+    """
+    Sends the entire response containing the appropriate resource to the client
+
+    :param socket.pyi request_socket: socket with the domain/IPV of the client and port number to send packets to
+    :param response: the entire response that will be sent to the client
+    :author:
     """
 
 
