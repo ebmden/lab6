@@ -192,8 +192,17 @@ def execute_request(request_socket, verb, resource, fields, body):
     :rtype: tuple
     :author: Eden Basso
     """
-    # callee of handle_request
-    # this method will need all info nessasary in order to determine which file to send to the client, and to to send the file to the client
+    http_response = b''
+    response_list = [write_response_headers(), get_response_body(resource), send_response(request_socket, response)]
+    status_line = get_status_code(resource, request_headers, verb)
+    if (status_line := status_line[1])[0]:
+        http_response += status_line
+        for i in range(0, len(response_list)):
+            http_response += response_list[i]
+        send_response(request_socket, http_response)
+    else:
+        print("Unacceptable request from client")
+        send_response(request_socket, status_line[0])
 
 
 
@@ -224,7 +233,7 @@ def get_response_body(resource):  # will need body in parsed bytes
     """
 
 
-def write_response_headers(time_hearder, conection_header, content_type_header, content_len_header):
+def write_response_headers():  # needs mime type, cont len, func for time stamp, and some inc of nonpersitant conn
     """
     Writes the headers of the response that contains the time, non-persist connection, mime type, and cont. length
 
