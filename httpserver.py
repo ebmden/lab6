@@ -79,7 +79,7 @@ def handle_request(request_socket):  # complete this method to parse a request a
     :return: None
     """
 
-    execute_request(parse_request(request_socket))
+    execute_request(parse_request(request_socket))  # if I need to add more param to execute_request then add after (request_socket)*here*)
     #testing parse response (above line should be called once execute_request is ready):
     print(parse_request(request_socket))
 
@@ -179,7 +179,7 @@ def http_get_body(request_socket):
     return request_body
 
 
-def execute_request(request_socket, verb, resource, fields, body):
+def execute_request(request_socket):
     """
     Uses information from the request to execute the request and send the correct file to the client
 
@@ -189,7 +189,46 @@ def execute_request(request_socket, verb, resource, fields, body):
     """
     # callee of handle_request
     # this method will need all info nessasary in order to determine which file to send to the client, and to to send the file to the client
-    
+
+
+def get_status_code(resource, headers, version):
+    """
+    ...
+
+    :param:
+    :param:
+    :param:
+    :return:
+    :rtype:
+    :author:
+    """
+    # valid resource?
+    # valid headers?
+    # valid ver?
+
+
+def get_resource_body(resource):  # will need body in parsed bytes
+    """
+    ...
+
+    :param:
+    :param:
+    """
+
+
+def write_response_headers(time_hearder, conection_header, mime_header, content_type_header):
+    """
+    ...
+
+    """
+
+
+def send_response(socket, response):
+    """
+    ...
+
+    """
+
 
 # ** Do not modify code below this line.  You should add additional helper methods above this line.
 
@@ -197,7 +236,7 @@ def execute_request(request_socket, verb, resource, fields, body):
 # You may use these functions to simplify your code.
 
 
-def get_mime_type(file_path):
+def get_mime_type(file_path):  # this method will be used to identify file type in the response sent to the client
     """
     Try to guess the MIME type of a file (resource), given its path (primarily its file extension)
 
@@ -212,7 +251,7 @@ def get_mime_type(file_path):
     return mime_type
 
 
-def get_file_size(file_path):
+def get_file_size(file_path):  # this method will be used to get thee size of the file which will be sent to the client this will be sent in the header
     """
     Try to get the size of a file (resource) as number of bytes, given its path
 
