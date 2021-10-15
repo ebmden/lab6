@@ -193,12 +193,12 @@ def execute_request(request_socket, verb, resource, fields, body):
     :author: Eden Basso
     """
     http_response = b''
-    response_list = [write_response_headers(), get_response_body(resource), send_response(request_socket, response)]
+    response_list = [write_response_headers(), get_response_body(resource), send_response(request_socket, response)]  # take 4 loop out
     status_line = get_status_code(resource, request_headers, verb)
     if (status_line := status_line[1])[0]:
         http_response += status_line
         for i in range(0, len(response_list)):
-            http_response += response_list[i]
+            http_response += response_list[i]()
         send_response(request_socket, http_response)
     else:
         print("Unacceptable request from client")
@@ -215,7 +215,7 @@ def get_status_code(resource, request_headers, verb):
     :param verb: HTTP version that will be compared with the server's version to ensure correct protocol usage
     :return: status such as 200 ok, 404 not found, 400 bad connection
     :rtype: str
-    :author:
+    :author: Eden Basso
     """
     # parses through resource(req) to find './abc.html': GET sp URL sp ver
     file_name = resource
@@ -246,7 +246,7 @@ def get_response_body(resource):  # will need body in parsed bytes
     :param resource: the URL from the client's response that will be used to return the correct file
     :return: parsed through file that matches the client's request
     :rtype: bytes
-    :author:
+    :author: Lucas Gral
     """
 
 
@@ -260,7 +260,7 @@ def write_response_headers(resource):  # needs mime type, cont len, func for tim
     :param content_len_header: header indicating the length of the body of the response
     :return: all of the headers needed for the http server's response
     :rtype: bytes
-    :author:
+    :author: Eden Basso
     """
     response_headers = dict()
     mime_type = get_mime_type(resource)
@@ -274,7 +274,7 @@ def send_response(request_socket, response):
 
     :param socket.pyi request_socket: socket with the domain/IPV of the client and port number to send packets to
     :param response: the entire response that will be sent to the client
-    :author:
+    :author: Lucas Gral
     """
 
 
