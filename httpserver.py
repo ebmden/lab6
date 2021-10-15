@@ -217,6 +217,23 @@ def get_status_code(resource, request_headers, verb):
     :rtype: str
     :author:
     """
+    # parses through resource(req) to find './abc.html': GET sp URL sp ver
+    file_name = resource
+    if (file_name := resource) == os.path.basename(resource):
+        resource_found = True
+        request_headers = get_header_fields(request_socket)
+        # file exists
+
+    # uses file func to find this file using parsed through resource
+
+    # -> if not: 404 not found
+    # parses through headers to make sure it has everything +
+    # Parses to get ver byte to make sure matches response ver
+    # -> if one or both of these is incorrect then 400 bad response
+    # if all is ok -> 200 ok
+    # return status code
+
+
     # valid resource?
     # valid headers?
     # valid ver?
@@ -233,7 +250,7 @@ def get_response_body(resource):  # will need body in parsed bytes
     """
 
 
-def write_response_headers():  # needs mime type, cont len, func for time stamp, and some inc of nonpersitant conn
+def write_response_headers(resource):  # needs mime type, cont len, func for time stamp, and some inc of nonpersitant conn
     """
     Writes the headers of the response that contains the time, non-persist connection, mime type, and cont. length
 
@@ -245,6 +262,10 @@ def write_response_headers():  # needs mime type, cont len, func for time stamp,
     :rtype: bytes
     :author:
     """
+    response_headers = dict()
+    mime_type = get_mime_type(resource)
+    body_length = get_file_size(resource)
+
 
 
 def send_response(request_socket, response):
