@@ -175,7 +175,7 @@ def http_get_body(request_socket):  # method should be fixed
     request_body = b''
     # uses req header dict() and finds cont len to concatenate body bytes obj
     request_body_length = \
-        (get_header_fields(request_socket).get(b'Content-Length:'.decode('ASCII'), key = "KEY NOT FOUND"))
+        (get_header_fields(request_socket).get(b'Content-Length:', key = "KEY NOT FOUND"))
     request_body_length = int.from_bytes(request_body_length, "big")
     for i in range(0, request_body_length):
         request_body += next_byte(request_socket)
@@ -232,14 +232,13 @@ def get_status_code(resource, verb, request_socket):
     # needs the file path from server to compare
     # req headers: cont len, and host
     headers = get_header_fields(request_socket)
-    if ((b'Content-Length:'.encode('ASCII') not in headers) or (b'Host:'.encode('ASCII') not in headers)) \
-        or (verb.decode('ASCII') != b'1.1'):
+    if ((b'Content-Length:' not in headers) or (b'Host:' not in headers)) or (verb != b'1.1'):
         print('404 not found: resource na or headers na')
-        return b'404 Not Found'.to_bytes(15, 'big')
-    elif not os.path.isfile(resource.decode('ASCII')):
+        return b'404 Not Found'
+    elif not os.path.isfile(resource):
         print('404 not found: resource na')
-        return b'404 Not Found'.to_bytes(13, 'big')
-    return b'200 OK'.to_bytes(6, 'big')
+        return b'404 Not Found'
+    return b'200 OK'
 
     # for testing purposes
     """if os.path.isfile(resource.decode('ASCII')):
@@ -278,10 +277,30 @@ def write_response_headers(resource):  # needs mime type, cont len, func for tim
 
     :param bytes resource: URL from the client's request
     :return: all of the headers needed for the http server's response
-    :rtype: bytes
+    :rtype: dictionary
     :author: Eden Basso
     """
+    time_stamp = datetime.datetime.utcnow()
+    time_string = time_stamp.strftime('%a, %d %b %Y %H:%M:%S CST')
+    # Sun, 06 Nov 1994 08:49:37 GMT
     # must wite headers for 400 and 404
+    # if file_size == None make field == 0
+    response_headers = {}
+    size_str = str(get_file_size(resource)).encode('ASCII')
+    mime_bytes = get_mime_type(resource).encode('ASCII')
+
+    # Connection: close
+    connection_header = b'Connection: Close'
+    # Content-Length: xxxx
+    if (size_str == b'0') is None:
+        mime_bytes = b'None'
+
+    length_header = b'Content-Length: ' + size_str
+    # Content-Type: text/html
+    type_header = b'Content-Type: ' + mime_bytes
+    # Date: Tue, 15 Nov 1994 08:12:31 GMT
+    date_header = b'Date: ' + time_string.encode('ASCII')
+
 
 
 
@@ -311,7 +330,7 @@ def get_mime_type(file_path):  # this method will be used to identify file type 
     :param file_path: string containing path to (resource) file, such as './abc.html'
     :return: If successful in guessing the MIME type, a string representing the content type, such as 'text/html'
              Otherwise, None
-    :rtype: int or None
+    :rtype: str or None
     """
 
     mime_type_and_encoding = mimetypes.guess_type(file_path)
