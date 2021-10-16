@@ -163,7 +163,7 @@ def get_header_fields(request_socket):
 
     return fields
 
-def http_get_body(request_socket):
+def http_get_body(request_socket):  # method should be fixed
     """
     Gets the body of the client's request for good measure
 
@@ -172,78 +172,100 @@ def http_get_body(request_socket):
     :rtype: bytes
     :author: Eden Basso
     """
-    # callee of parse_request *currently has a placeholder
-    # calls http_get_word to parse through body and gets the word and if its the end of a line or not
-    # param request_socket so it can be passed to get_word
-    # loop that checks to see if end_of_line == False while also assigning http_get_word to body
     request_body = b''
-    byte_temp = b''
-    while (byte_temp := http_get_word(request_socket))[0] != b'':
-        request_body += byte_temp
+    # uses req header dict() and finds cont len to concatenate body bytes obj
+    request_body_length = \
+        (get_header_fields(request_socket).get(b'Content-Length:'.decode('ASCII'), key = "KEY NOT FOUND"))
+    request_body_length = int.from_bytes(request_body_length, "big")
+    for i in range(0, request_body_length):
+        request_body += next_byte(request_socket)
     return request_body
 
 
-def execute_request(request_socket, verb, resource, fields, body):
+def next_byte(request_socket):
     """
-    Uses information from the request to execute the request and send the correct file to the client
+    Read the next byte from the socket data_socket.
+
+    :param socket.pyi request_socket: 'TCP data socket' in this case from client used to parse through body of request
+    :return: each single byte of the http request
+    :rtype: bytes
+    """
+    return request_socket.recv(1)
+
+
+def execute_request(request_socket, verb, resource):  # this method should be fixed
+    """
+    Concatenates the http response and sends it or just sends the status line if client sends an unacceptable request
 
     :param socket.pyi request_socket: socket representing TCP connection from the HTTP client_socket
-    :return: info about the http request that allows the file to be returned to client
-    :rtype: tuple
+    :param bytes verb: HTTP version of the request that will be compared with the server's to ensure correct protocol usage
+    :param bytes resource: the URL sent by the client that will be used to retrieve the correct file from the server
     :author: Eden Basso
     """
     http_response = b''
-    response_list = [write_response_headers(), get_response_body(resource), send_response(request_socket, response)]  # take 4 loop out
     status_line = get_status_code(resource, request_headers, verb)
-    if (status_line := status_line[1])[0]:
-        http_response += status_line
-        for i in range(0, len(response_list)):
-            http_response += response_list[i]()
+    if (status_line := status_line[1])[0]:  # assigns the tuple to just the status ln(bytes) if 200(True)
+        # calls helper methods to concatenate res
+        http_response = status_line + write_response_headers(resource) + get_response_body(resource)
+        # sends res
         send_response(request_socket, http_response)
     else:
+        # -> 404 or 400 send only status line
         print("Unacceptable request from client")
         send_response(request_socket, status_line[0])
+        # needs to return header lines too
 
 
 
-def get_status_code(resource, request_headers, verb):
+def get_status_code(resource, verb, request_socket):
     """
     Checks the resource, headers, and http version from the client's request and returns the appropriate status code
 
-    :param resource: the URL from the client's request
-    :param request_headers: the headers from the client that will be checked to send the appropriate status in the resp.
+    :param bytes resource: the URL from the client's request
+    :param socket.pyi request_socket: socket representing TCP connection from the HTTP client_socket
     :param verb: HTTP version that will be compared with the server's version to ensure correct protocol usage
     :return: status such as 200 ok, 404 not found, 400 bad connection
-    :rtype: str
+    :rtype: bytes
     :author: Eden Basso
     """
-    # parses through resource(req) to find './abc.html': GET sp URL sp ver
-    file_name = resource
-    if (file_name := resource) == os.path.basename(resource):
-        resource_found = True
-        request_headers = get_header_fields(request_socket)
-        # file exists
+    # parses through resource(req) to find './abc.html' (ASCII) : GET sp URL sp ver may need to test what the resource returns
+    # needs the file path from server to compare
+    # req headers: cont len, and host
+    headers = get_header_fields(request_socket)
+    if ((b'Content-Length:'.encode('ASCII') not in headers) or (b'Host:'.encode('ASCII') not in headers)) \
+        or (verb.decode('ASCII') != b'1.1'):
+        print('404 not found: resource na or headers na')
+        return b'404 Not Found'.to_bytes(15, 'big')
+    elif not os.path.isfile(resource.decode('ASCII')):
+        print('404 not found: resource na')
+        return b'404 Not Found'.to_bytes(13, 'big')
+    return b'200 OK'.to_bytes(6, 'big')
 
-    # uses file func to find this file using parsed through resource
-
-    # -> if not: 404 not found
-    # parses through headers to make sure it has everything +
-    # Parses to get ver byte to make sure matches response ver
-    # -> if one or both of these is incorrect then 400 bad response
-    # if all is ok -> 200 ok
-    # return status code
-
-
-    # valid resource?
-    # valid headers?
-    # valid ver?
+    # for testing purposes
+    """if os.path.isfile(resource.decode('ASCII')):
+        print('resource exists in path, so far 200')
+    else:
+        print('404 not found: resource na')
+        return b'404 Not Found'.to_bytes(13, 'big')
+    if verb.decode('ASCII') == b'1.1':
+        print('ver matches')
+    else:
+        print('400 Bad Request: ver doesnt match')
+        return b'400 Bad Request'.to_bytes(15, 'big')
+    if (b'Content-Length:'.encode('ASCII') in headers) and (b'Host:'.encode('ASCII') in headers):
+        ok = True
+        print('all req headers')
+    else:
+        print('400 Bad Request: req header na')
+        return b'400 Bad Request'.to_bytes(15, 'big')
+    return b'200 OK'.to_bytes(6, 'big')"""
 
 
 def get_response_body(resource):  # will need body in parsed bytes
     """
     Gets the body from the resource and returns it to be sent to the client in an http response
 
-    :param resource: the URL from the client's response that will be used to return the correct file
+    :param resource: URL from the client's request that will be used to return the correct file
     :return: parsed through file that matches the client's request
     :rtype: bytes
     :author: Lucas Gral
@@ -254,17 +276,15 @@ def write_response_headers(resource):  # needs mime type, cont len, func for tim
     """
     Writes the headers of the response that contains the time, non-persist connection, mime type, and cont. length
 
-    :param time_header: proper RFC format of the time the request was satisfied
-    :param connection_header: header indicating a persistent connection was used
-    :param content_type_header: header indicating the mime type of the file being sent
-    :param content_len_header: header indicating the length of the body of the response
+    :param bytes resource: URL from the client's request
     :return: all of the headers needed for the http server's response
     :rtype: bytes
     :author: Eden Basso
     """
-    response_headers = dict()
-    mime_type = get_mime_type(resource)
-    body_length = get_file_size(resource)
+    # must wite headers for 400 and 404
+
+
+
 
 
 
