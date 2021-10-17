@@ -1,24 +1,27 @@
 """
-- NOTE: REPLACE 'N' Below with your section, year, and lab number
-- CS2911 - 0NN
-- Fall 202N
-- Lab N
+- CS2911 - 011
+- Fall 2021
+- Lab 6
 - Names:
-  - 
-  - 
+  - Eden Basso
+  - Lucas Gral
 
 An HTTP server
 
-Introduction: (Describe the lab in your own words)
+Introduction: (Describe the lab in your own words) - LG
 
 
 
 
-Summary: (Summarize your experience with the lab, what you learned, what you liked,what you disliked, and any suggestions you have for improvement)
-
-
-
-
+Summary: (Summarize your experience with the lab, what you learned, what you liked,what you disliked, and any suggestions you have for improvement) - EB
+This lab taught me about the specific ways in which a server handles a client's request and responds accordingly 
+in order to return the appropriate data. Within handling client request, I learned how to determine where in the request
+I needed to look for the resource, as well as specifics to correctly execute a protocol such as HTTP version and 
+content-length header. When it came to sending the response, I learned the significance of dividing up tasks between 
+methods to successfully build an accurate response. This was especially challenging when needing to validate input 
+and return the correct status code. I liked this lab because it challenged me to not only split up tasks between 
+methods, but consider where and how many times I am calling a function or parsing through the resource to ensure 
+I was executing the response correctly and not over-calling a function. I have no specific recommendations for this lab.
 
 """
 
@@ -175,8 +178,7 @@ def http_get_body(request_socket):  # method should be fixed
     request_body = b''
     # uses req header dict() and finds cont len to concatenate body bytes obj
     request_body_length = \
-        (get_header_fields(request_socket).get(b'Content-Length:', key = "KEY NOT FOUND"))
-    request_body_length = int.from_bytes(request_body_length, "big")
+        int((get_header_fields(request_socket).get(b'Content-Length:', key = "KEY NOT FOUND")).decode('ASCII'))
     for i in range(0, request_body_length):
         request_body += next_byte(request_socket)
     return request_body
@@ -203,18 +205,11 @@ def execute_request(request_socket, verb, resource):  # this method should be fi
     :author: Eden Basso
     """
     http_response = b''
-    status_line = get_status_code(resource, request_headers, verb)
-    if (status_line := status_line[1])[0]:  # assigns the tuple to just the status ln(bytes) if 200(True)
-        # calls helper methods to concatenate res
-        http_response = status_line + write_response_headers(resource) + get_response_body(resource)
-        # sends res
-        send_response(request_socket, http_response)
-    else:
-        # -> 404 or 400 send only status line
-        print("Unacceptable request from client")
-        send_response(request_socket, status_line[0])
-        # needs to return header lines too
-
+    status_line = get_status_code(resource, verb, request_socket)  # may not need depending what get_response_body returns
+    http_response = status_line + write_response_headers(resource)
+    if str(200) in status_line.decode('ASCII'):  # may not need depending what get_response_body returns
+        http_response += get_response_body(resource)
+    send_response(request_socket, http_response)
 
 
 def get_status_code(resource, verb, request_socket):
@@ -230,34 +225,17 @@ def get_status_code(resource, verb, request_socket):
     """
     # parses through resource(req) to find './abc.html' (ASCII) : GET sp URL sp ver may need to test what the resource returns
     # needs the file path from server to compare
-    # req headers: cont len, and host
+    # needs to write entire status line
     headers = get_header_fields(request_socket)
+    status = ('200', 'OK')
     if ((b'Content-Length:' not in headers) or (b'Host:' not in headers)) or (verb != b'1.1'):
-        print('404 not found: resource na or headers na')
-        return b'404 Not Found'
+        print('400 Bad Request: resource na or headers na')
+        status = ('400', 'Bad Request')
     elif not os.path.isfile(resource):
         print('404 not found: resource na')
-        return b'404 Not Found'
-    return b'200 OK'
+        status = ('404', 'Not Found')
+    return ('HTTP/1.1 {} {}\r\n'.format(status[0], status[1])).encode('ASCII')
 
-    # for testing purposes
-    """if os.path.isfile(resource.decode('ASCII')):
-        print('resource exists in path, so far 200')
-    else:
-        print('404 not found: resource na')
-        return b'404 Not Found'.to_bytes(13, 'big')
-    if verb.decode('ASCII') == b'1.1':
-        print('ver matches')
-    else:
-        print('400 Bad Request: ver doesnt match')
-        return b'400 Bad Request'.to_bytes(15, 'big')
-    if (b'Content-Length:'.encode('ASCII') in headers) and (b'Host:'.encode('ASCII') in headers):
-        ok = True
-        print('all req headers')
-    else:
-        print('400 Bad Request: req header na')
-        return b'400 Bad Request'.to_bytes(15, 'big')
-    return b'200 OK'.to_bytes(6, 'big')"""
 
 
 def get_response_body(resource):  # will need body in parsed bytes
@@ -282,29 +260,18 @@ def write_response_headers(resource):  # needs mime type, cont len, func for tim
     """
     time_stamp = datetime.datetime.utcnow()
     time_string = time_stamp.strftime('%a, %d %b %Y %H:%M:%S CST')
-    # Sun, 06 Nov 1994 08:49:37 GMT
-    # must wite headers for 400 and 404
-    # if file_size == None make field == 0
-    response_headers = {}
-    size_str = str(get_file_size(resource)).encode('ASCII')
+
+    # if file_size == None make field = 0 and type = None in bytes for 404 and 400
+    size_bytes = str(get_file_size(resource)).encode('ASCII')
     mime_bytes = get_mime_type(resource).encode('ASCII')
-
-    # Connection: close
-    connection_header = b'Connection: Close'
-    # Content-Length: xxxx
-    if (size_str == b'0') is None:
+    if (size_bytes := b'0') is None:
         mime_bytes = b'None'
-
-    length_header = b'Content-Length: ' + size_str
-    # Content-Type: text/html
-    type_header = b'Content-Type: ' + mime_bytes
-    # Date: Tue, 15 Nov 1994 08:12:31 GMT
-    date_header = b'Date: ' + time_string.encode('ASCII')
-
-
-
-
-
+    response_headers = {
+        b'Connection:': b'Close\r\n', # Connection: close
+        b'Content-Length: ': size_bytes + b'\r\n', # Content-Length: xxxx
+        b'Content-Type: ': mime_bytes + b'\r\n', # Content-Type: text/html
+        b'Date: ': time_string.encode('ASCII') + b'\r\n'}  # Date: Tue, 15 Nov 1994 08:12:31 GMT
+    return response_headers
 
 
 def send_response(request_socket, response):
