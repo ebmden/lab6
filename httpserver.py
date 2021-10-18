@@ -285,6 +285,7 @@ def write_response_headers(resource, status_ok):  # needs mime type, cont len, f
     Writes the headers of the response that contains the time, non-persist connection, mime type, and cont. length
 
     :param bytes resource: URL from the client's request
+    :param status_ok: whether the status is 200 OK or not
     :return: all of the headers needed for the http server's response
     :rtype: bytes
     :author: Eden Basso
