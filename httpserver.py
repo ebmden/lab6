@@ -86,9 +86,10 @@ def handle_request(request_socket):  # complete this method to parse a request a
     :return: None
     """
 
-    execute_request(parse_request(request_socket))  # if I need to add more param to execute_request then add after (request_socket)*here*)
-    #testing parse response (above line should be called once execute_request is ready):
-    print(parse_request(request_socket))
+    print("PARSING")
+    req_info = parse_request(request_socket)
+    print("EXECUTING", req_info[1])
+    execute_request(request_socket, req_info[0], req_info[1], req_info[2], req_info[3])  # if I need to add more param to execute_request then add after (request_socket)*here*)
 
 def http_get_word(request_socket):
     """
@@ -124,8 +125,12 @@ def parse_request(request_socket):
 
     (verb, resource) = get_request_line(request_socket)
     fields = get_header_fields(request_socket)
-    body = http_get_body(request_socket)
+    body = http_get_body(request_socket, fields)
 
+    if resource == b'/':
+        resource = b'/index.html'
+
+    print("REQUEST", verb, resource, fields, body)
     return verb, resource, fields, body
 
 def get_request_line(request_socket):
@@ -166,7 +171,7 @@ def get_header_fields(request_socket):
 
     return fields
 
-def http_get_body(request_socket):  # method should be fixed
+def http_get_body(request_socket, fields):  # method should be fixed
     """
     Gets the body of the client's request for good measure
 
@@ -178,9 +183,10 @@ def http_get_body(request_socket):  # method should be fixed
     request_body = b''
     # uses req header dict() and finds cont len to concatenate body bytes obj
     request_body_length = \
-        int((get_header_fields(request_socket).get(b'Content-Length:', key = "KEY NOT FOUND")).decode('ASCII'))
+        int(fields.get(b'Content-Length:').decode('ASCII')) if b'Content-Length' in fields else 0
     for i in range(0, request_body_length):
         request_body += next_byte(request_socket)
+
     return request_body
 
 
@@ -195,24 +201,29 @@ def next_byte(request_socket):
     return request_socket.recv(1)
 
 
-def execute_request(request_socket, verb, resource):  # this method should be fixed
+def execute_request(request_socket, verb, resource, fields, body):  # this method should be fixed
     """
     Concatenates the http response and sends it or just sends the status line if client sends an unacceptable request
 
     :param socket.pyi request_socket: socket representing TCP connection from the HTTP client_socket
     :param bytes verb: HTTP version of the request that will be compared with the server's to ensure correct protocol usage
     :param bytes resource: the URL sent by the client that will be used to retrieve the correct file from the server
+    :param dictionary fields: dictionary of fields received by the request
+    :param bytes body: contents of the request body
     :author: Eden Basso
     """
     http_response = b''
-    status_line = get_status_code(resource, verb, request_socket)  # may not need depending what get_response_body returns
-    http_response = status_line + write_response_headers(resource)
+    status_line = get_status_code(resource, verb, request_socket, fields)  # may not need depending what get_response_body returns
+    response_headers = write_response_headers(resource)
+    print(status_line, response_headers)
+    http_response = status_line + response_headers
     if str(200) in status_line.decode('ASCII'):  # may not need depending what get_response_body returns
         http_response += get_response_body(resource)
+
     send_response(request_socket, http_response)
 
 
-def get_status_code(resource, verb, request_socket):
+def get_status_code(resource, verb, request_socket, fields):
     """
     Checks the resource, headers, and http version from the client's request and returns the appropriate status code
 
@@ -226,15 +237,14 @@ def get_status_code(resource, verb, request_socket):
     # parses through resource(req) to find './abc.html' (ASCII) : GET sp URL sp ver may need to test what the resource returns
     # needs the file path from server to compare
     # needs to write entire status line
-    headers = get_header_fields(request_socket)
-    status = ('200', 'OK')
-    if ((b'Content-Length:' not in headers) or (b'Host:' not in headers)) or (verb != b'1.1'):
+    status = (b'200', b'OK')
+    if ((b'Host:' not in fields)) or (verb != b'GET'):
         print('400 Bad Request: resource na or headers na')
-        status = ('400', 'Bad Request')
-    elif not os.path.isfile(resource):
+        status = (b'400', b'Bad Request')
+    elif not os.path.isfile((b'.'+resource).decode('ASCII')):
         print('404 not found: resource na')
-        status = ('404', 'Not Found')
-    return ('HTTP/1.1 {} {}\r\n'.format(status[0], status[1])).encode('ASCII')
+        status = (b'404', b'Not Found')
+    return b'HTTP/1.1 ' + status[0] + b' ' + status[1] + b'\r\n'
 
 
 
@@ -247,7 +257,12 @@ def get_response_body(resource):  # will need body in parsed bytes
     :rtype: bytes
     :author: Lucas Gral
     """
+    resp_body = b''
 
+    with open((b'.'+resource).decode('ASCII'), 'rb') as f:
+        resp_body = f.read()
+
+    return resp_body
 
 def write_response_headers(resource):  # needs mime type, cont len, func for time stamp, and some inc of nonpersitant conn
     """
@@ -255,7 +270,7 @@ def write_response_headers(resource):  # needs mime type, cont len, func for tim
 
     :param bytes resource: URL from the client's request
     :return: all of the headers needed for the http server's response
-    :rtype: dictionary
+    :rtype: bytes
     :author: Eden Basso
     """
     time_stamp = datetime.datetime.utcnow()
@@ -264,13 +279,12 @@ def write_response_headers(resource):  # needs mime type, cont len, func for tim
     # if file_size == None make field = 0 and type = None in bytes for 404 and 400
     size_bytes = str(get_file_size(resource)).encode('ASCII')
     mime_bytes = get_mime_type(resource).encode('ASCII')
-    if (size_bytes := b'0') is None:
-        mime_bytes = b'None'
-    response_headers = {
-        b'Connection:': b'Close\r\n', # Connection: close
-        b'Content-Length: ': size_bytes + b'\r\n', # Content-Length: xxxx
-        b'Content-Type: ': mime_bytes + b'\r\n', # Content-Type: text/html
-        b'Date: ': time_string.encode('ASCII') + b'\r\n'}  # Date: Tue, 15 Nov 1994 08:12:31 GMT
+
+    response_headers = b'Connection: ' + b'Close\r\n' \
+    + b'Content-Length: ' + size_bytes + b'\r\n' \
+    + b'Content-Type: ' + mime_bytes + b'\r\n' \
+    + b'Date: ' + time_string.encode('ASCII') + b'\r\n\r\n'
+
     return response_headers
 
 
@@ -282,6 +296,10 @@ def send_response(request_socket, response):
     :param response: the entire response that will be sent to the client
     :author: Lucas Gral
     """
+
+    print("sending", response)
+
+    request_socket.sendall(response)
 
 
 # ** Do not modify code below this line.  You should add additional helper methods above this line.
@@ -300,7 +318,7 @@ def get_mime_type(file_path):  # this method will be used to identify file type 
     :rtype: str or None
     """
 
-    mime_type_and_encoding = mimetypes.guess_type(file_path)
+    mime_type_and_encoding = mimetypes.guess_type(file_path.decode('ASCII'))
     mime_type = mime_type_and_encoding[0]
     return mime_type
 
@@ -315,12 +333,13 @@ def get_file_size(file_path):  # this method will be used to get thee size of th
     :rtype: int or None
     """
 
+    if file_path[0] != b'.':
+        file_path = b'.' + file_path
     # Initially, assume file does not exist
     file_size = None
-    if os.path.isfile(file_path):
-        file_size = os.stat(file_path).st_size
+    if os.path.isfile(file_path.decode('ASCII')):
+        file_size = os.stat(file_path.decode('ASCII')).st_size
     return file_size
-
 
 main()
 
