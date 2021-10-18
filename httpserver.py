@@ -5,7 +5,9 @@
 - Names:
   - Eden Basso
   - Lucas Gral
+
 An HTTP server
+
 Introduction: (Describe the lab in your own words) - LG
 The goal of this lab was to implement an HTTP server, which is a program that listens for HTTP requests
 and uses the information from that request to do something (usually responding with a webpage).
@@ -15,13 +17,13 @@ use OS file IO operations to read the contents of those files for sending.
 We broke the task into two parts: parsing the request and executing the response. You can see this design choice
 in the implementation: the handle_request function only calls two other functions with the two aforementioned purposes.
 Summary: (Summarize your experience with the lab, what you learned, what you liked,what you disliked, and any suggestions you have for improvement) - EB
-This lab taught me about the specific ways in which a server handles a client's request and responds accordingly
+This lab taught me about the specific ways in which a server handles a client's request and responds accordingly 
 in order to return the appropriate data. Within handling client request, I learned how to determine where in the request
-I needed to look for the resource, as well as specifics to correctly execute a protocol such as HTTP version and
-content-length header. When it came to sending the response, I learned the significance of dividing up tasks between
-methods to successfully build an accurate response. This was especially challenging when needing to validate input
-and return the correct status code. I liked this lab because it challenged me to not only split up tasks between
-methods, but consider where and how many times I am calling a function or parsing through the resource to ensure
+I needed to look for the resource, as well as specifics to correctly execute a protocol such as HTTP version and 
+content-length header. When it came to sending the response, I learned the significance of dividing up tasks between 
+methods to successfully build an accurate response. This was especially challenging when needing to validate input 
+and return the correct status code. I liked this lab because it challenged me to not only split up tasks between 
+methods, but consider where and how many times I am calling a function or parsing through the resource to ensure 
 I was executing the response correctly and not over-calling a function. I have no specific recommendations for this lab.
 """
 
