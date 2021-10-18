@@ -117,9 +117,11 @@ def http_get_word(request_socket):
 
 def parse_request(request_socket):
     """
-    ...
+    Gets information from the http request
 
+    :param request_socket: the socket to get info from
     :return: verb, resource, fields, body
+    :rtype: tuple
     :author: Lucas Gral
     """
 
@@ -135,9 +137,11 @@ def parse_request(request_socket):
 
 def get_request_line(request_socket):
     """
-    ...
+    goes through the request line to find the HTTP verb and resource
 
-    :return:
+    :param request_socket: the socket to get info from
+    :return: http verb, resource
+    :rtype: tuple
     :author: Lucas Gral
     """
     verb = http_get_word(request_socket)[0]
@@ -151,9 +155,11 @@ def get_request_line(request_socket):
 
 def get_header_fields(request_socket):
     """
-    ...
+    Goes through the header to read the header fields
 
-    :return:
+    :param request_socket: the socket to get info from
+    :return: dictionary of header fields
+    :rtype: dict
     :author: Lucas Gal
     """
     fields = dict()
@@ -213,18 +219,21 @@ def execute_request(request_socket, verb, resource, fields, body):  # this metho
     :author: Eden Basso
     """
     http_response = b''
-    status_line = get_status_code(resource, verb, request_socket, fields)  # may not need depending what get_response_body returns
-    status_ok = str(200) in status_line.decode('ASCII')
-    response_headers = write_response_headers(resource, status_ok)
-    print(status_line, response_headers)
-    http_response = status_line + response_headers
-    if status_ok:  # may not need depending what get_response_body returns
-        http_response += get_response_body(resource)
+
+    if verb == b'GET' and b'?' not in resource:
+        status_line = get_status_code(resource, verb, request_socket, fields)  # may not need depending what get_response_body returns
+        status_ok = str(200) in status_line.decode('ASCII')
+        response_headers = write_response_headers(resource, status_ok)
+        print(status_line, response_headers)
+        http_response = status_line + response_headers
+        if status_ok:  # may not need depending what get_response_body returns
+            http_response += get_response_body(resource)
+        else:
+            http_response += b'<h1>404, not found!</h1>'
     else:
-        http_response += b'<h1>404, not found!</h1>'
+        http_response += b'HTTP/1.1 200 OK\r\nConnection: Close\r\nContent-Length: ' + str(len(body)+len(resource)).encode('ASCII') + b'\r\nContent-Type: text/html\r\n\r\n' + resource + body
 
     send_response(request_socket, http_response)
-
 
 def get_status_code(resource, verb, request_socket, fields):
     """
@@ -347,19 +356,3 @@ def get_file_size(file_path):  # this method will be used to get thee size of th
 main()
 
 # Replace this line with your comments on the lab
-
-#temporary
-"""
-def execute_request(http_socket, request_data):
-    request_verb = request_data[0]
-    request_resource = request_data[1]
-    request_fields = request_data[2]
-    request_body = request_data[3]
-
-    if(request_verb == 'GET'):
-        execute_request_get(http_socket, request_resource)
-    elif(request_verb == etc):
-        ...
-    else:
-        print("Unknown request:", request_verb)
-"""
