@@ -5,24 +5,24 @@
 - Names:
   - Eden Basso
   - Lucas Gral
-
 An HTTP server
-
 Introduction: (Describe the lab in your own words) - LG
-
-
-
-
+The goal of this lab was to implement an HTTP server, which is a program that listens for HTTP requests
+and uses the information from that request to do something (usually responding with a webpage).
+Our server will use a TCP socket to listen for requests and for sending responses, as per the HTTP protocol.
+The webpages served will be stored on the hard drive in the same directory as the server, and the server will
+use OS file IO operations to read the contents of those files for sending.
+We broke the task into two parts: parsing the request and executing the response. You can see this design choice
+in the implementation: the handle_request function only calls two other functions with the two aforementioned purposes.
 Summary: (Summarize your experience with the lab, what you learned, what you liked,what you disliked, and any suggestions you have for improvement) - EB
-This lab taught me about the specific ways in which a server handles a client's request and responds accordingly 
+This lab taught me about the specific ways in which a server handles a client's request and responds accordingly
 in order to return the appropriate data. Within handling client request, I learned how to determine where in the request
-I needed to look for the resource, as well as specifics to correctly execute a protocol such as HTTP version and 
-content-length header. When it came to sending the response, I learned the significance of dividing up tasks between 
-methods to successfully build an accurate response. This was especially challenging when needing to validate input 
-and return the correct status code. I liked this lab because it challenged me to not only split up tasks between 
-methods, but consider where and how many times I am calling a function or parsing through the resource to ensure 
+I needed to look for the resource, as well as specifics to correctly execute a protocol such as HTTP version and
+content-length header. When it came to sending the response, I learned the significance of dividing up tasks between
+methods to successfully build an accurate response. This was especially challenging when needing to validate input
+and return the correct status code. I liked this lab because it challenged me to not only split up tasks between
+methods, but consider where and how many times I am calling a function or parsing through the resource to ensure
 I was executing the response correctly and not over-calling a function. I have no specific recommendations for this lab.
-
 """
 
 import socket
@@ -43,7 +43,6 @@ def http_server_setup(port):
     Start the HTTP server
     - Open the listening socket
     - Accept connections and spawn processes to handle requests
-
     :param port: listening port number
     """
 
@@ -73,11 +72,8 @@ def handle_request(request_socket):  # complete this method to parse a request a
     # will need to add other helpers
     """
     Handle a single HTTP request, running on a newly started thread.
-
     Closes request socket after sending response.
-
     Should include a response header indicating NO persistent connection
-
     :param request_socket: socket representing TCP connection from the HTTP client_socket
     :return: None
     """
@@ -85,7 +81,7 @@ def handle_request(request_socket):  # complete this method to parse a request a
     print("PARSING")
     req_info = parse_request(request_socket)
     print("EXECUTING", req_info[1])
-    execute_request(request_socket, req_info[0], req_info[1], req_info[2])  # if I need to add more param to execute_request then add after (request_socket)*here*)
+    execute_request(request_socket, req_info[0], req_info[1], req_info[2], req_info[3])
 
 
 def http_get_word(request_socket):
@@ -93,7 +89,6 @@ def http_get_word(request_socket):
     Gets the next string of characters surrounded by space or ending in \r\n
     Returns the string, and also whether it's the end of the line.
     This could be used instead of next_byte or socket.recv
-
     :param socket.pyi request_socket: client data socket
     :return: (word, endOfLine)
     :rtype: Any
@@ -112,11 +107,13 @@ def http_get_word(request_socket):
             word += last_byte
     return word, False
 
+
 def parse_request(request_socket):
     """
-    ...
-
+    Gets information from the http request
+    :param request_socket: the socket to get info from
     :return: verb, resource, fields, body
+    :rtype: tuple
     :author: Lucas Gral
     """
 
@@ -133,15 +130,16 @@ def parse_request(request_socket):
 
 def get_request_line(request_socket):
     """
-    ...
-
-    :return:
+    goes through the request line to find the HTTP verb and resource
+    :param request_socket: the socket to get info from
+    :return: http verb, resource
+    :rtype: tuple
     :author: Lucas Gral
     """
     verb = http_get_word(request_socket)[0]
     resource = http_get_word(request_socket)[0]
 
-    # go to end of request line (so fields can be read after)
+    #go to end of request line (so fields can be read after)
     while http_get_word(request_socket)[1] == False:
         pass
 
@@ -150,9 +148,10 @@ def get_request_line(request_socket):
 
 def get_header_fields(request_socket):
     """
-    ...
-
-    :return:
+    Goes through the header to read the header fields
+    :param request_socket: the socket to get info from
+    :return: dictionary of header fields
+    :rtype: dict
     :author: Lucas Gal
     """
     fields = dict()
@@ -174,9 +173,8 @@ def get_header_fields(request_socket):
 def http_get_body(request_socket, fields):
     """
     Gets the body of the client's request for good measure
-
     :param socket.pyi request_socket: socket representing TCP connection from the HTTP client_socket
-    :param bytes fields: request fields used to indicate the length of the body to be parsed through
+    :param bytes fields: request fields used to determine the content length of the body
     :return: the body of the resource as a bytes object
     :rtype: bytes
     :author: Eden Basso
@@ -194,7 +192,6 @@ def http_get_body(request_socket, fields):
 def next_byte(request_socket):
     """
     Read the next byte from the socket data_socket.
-
     :param socket.pyi request_socket: 'TCP data socket' in this case from client used to parse through body of request
     :return: each single byte of the http request
     :rtype: bytes
@@ -202,23 +199,32 @@ def next_byte(request_socket):
     return request_socket.recv(1)
 
 
-def execute_request(request_socket, verb, resource, fields):
+def execute_request(request_socket, verb, resource, fields, body):  # this method should be fixed
     """
     Concatenates the http response and sends it or just sends the status line if client sends an unacceptable request
-
     :param socket.pyi request_socket: socket representing TCP connection from the HTTP client_socket
-    :param bytes verb: HTTP version of the request that will be compared with the server's to ensure correct protocol usage
+    :param bytes verb: version of the request that will be compared with the server's to ensure correct protocol usage
     :param bytes resource: the URL sent by the client that will be used to retrieve the correct file from the server
     :param dictionary fields: dictionary of fields received by the request
+    :param bytes body: contents of the request body
     :author: Eden Basso
     """
     http_response = b''
-    status_line = get_status_code(resource, verb, fields)
-    response_headers = write_response_headers(resource)
-    print(status_line, response_headers)
-    http_response = status_line + response_headers
-    if str(200) in status_line.decode('ASCII'):
-        http_response += get_response_body(resource)
+
+    if verb == b'GET' and b'?' not in resource:
+        status_line = get_status_code(resource, verb, fields)
+        status_ok = str(200) in status_line.decode('ASCII')
+        response_headers = write_response_headers(resource, status_ok)
+        print(status_line, response_headers)
+        http_response = status_line + response_headers
+        if status_ok:
+            http_response += get_response_body(resource)
+        else:
+            http_response += b'<h1>404, not found!</h1>'
+    else:
+        http_response += b'HTTP/1.1 200 OK\r\nConnection: Close\r\nContent-Length: ' + \
+                         str(len(body)+len(resource)).encode('ASCII') + \
+                         b'\r\nContent-Type: text/html\r\n\r\n' + resource + body
 
     send_response(request_socket, http_response)
 
@@ -226,16 +232,15 @@ def execute_request(request_socket, verb, resource, fields):
 def get_status_code(resource, verb, fields):
     """
     Checks the resource, headers, and http version from the client's request and returns the appropriate status code
-
     :param bytes resource: the URL from the client's request
     :param verb: HTTP version that will be compared with the server's version to ensure correct protocol usage
-    :param bytes fields: request header fields used to determine if all required information is present
+    :param bytes fields: request header fields used to determine of the required information is present
     :return: status such as 200 ok, 404 not found, 400 bad connection
     :rtype: bytes
     :author: Eden Basso
     """
     status = (b'200', b'OK')
-    if (b'Host:' not in fields) or (verb != b'GET'):
+    if ((b'Host:' not in fields)) or (verb != b'GET'):
         print('400 Bad Request: resource na or headers na')
         status = (b'400', b'Bad Request')
     elif not os.path.isfile((b'.'+resource).decode('ASCII')):
@@ -247,7 +252,6 @@ def get_status_code(resource, verb, fields):
 def get_response_body(resource):
     """
     Gets the body from the resource and returns it to be sent to the client in an http response
-
     :param resource: URL from the client's request that will be used to return the correct file
     :return: parsed through file that matches the client's request
     :rtype: bytes
@@ -255,17 +259,17 @@ def get_response_body(resource):
     """
     resp_body = b''
 
-    with open((b'.' + resource).decode('ASCII'), 'rb') as f:
+    with open((b'.'+resource).decode('ASCII'), 'rb') as f:
         resp_body = f.read()
 
     return resp_body
 
 
-def write_response_headers(resource):
+def write_response_headers(resource, status_ok):
     """
     Writes the headers of the response that contains the time, non-persist connection, mime type, and cont. length
-
     :param bytes resource: URL from the client's request
+    :param status_ok: whether the status is 200 OK or not
     :return: all of the headers needed for the http server's response
     :rtype: bytes
     :author: Eden Basso
@@ -273,8 +277,8 @@ def write_response_headers(resource):
     time_stamp = datetime.datetime.utcnow()
     time_string = time_stamp.strftime('%a, %d %b %Y %H:%M:%S CST')
 
-    size_bytes = str(get_file_size(resource)).encode('ASCII')
-    mime_bytes = get_mime_type(resource).encode('ASCII')
+    size_bytes = str(get_file_size(resource)).encode('ASCII') if status_ok else b'24' #24 = size of 404 message
+    mime_bytes = get_mime_type(resource).encode('ASCII') if status_ok else b'text/html'
 
     response_headers = b'Connection: ' + b'Close\r\n' \
     + b'Content-Length: ' + size_bytes + b'\r\n' \
@@ -287,7 +291,6 @@ def write_response_headers(resource):
 def send_response(request_socket, response):
     """
     Sends the entire response containing the appropriate resource to the client
-
     :param socket.pyi request_socket: socket with the domain/IPV of the client and port number to send packets to
     :param response: the entire response that will be sent to the client
     :author: Lucas Gral
@@ -307,7 +310,6 @@ def send_response(request_socket, response):
 def get_mime_type(file_path):  # this method will be used to identify file type in the response sent to the client
     """
     Try to guess the MIME type of a file (resource), given its path (primarily its file extension)
-
     :param file_path: string containing path to (resource) file, such as './abc.html'
     :return: If successful in guessing the MIME type, a string representing the content type, such as 'text/html'
              Otherwise, None
@@ -322,7 +324,6 @@ def get_mime_type(file_path):  # this method will be used to identify file type 
 def get_file_size(file_path):  # this method will be used to get thee size of the file which will be sent to the client this will be sent in the header
     """
     Try to get the size of a file (resource) as number of bytes, given its path
-
     :param file_path: string containing path to (resource) file, such as './abc.html'
     :return: If file_path designates a normal file, an integer value representing the the file size in bytes
              Otherwise (no such file, or path is not a file), None
