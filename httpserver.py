@@ -214,11 +214,14 @@ def execute_request(request_socket, verb, resource, fields, body):  # this metho
     """
     http_response = b''
     status_line = get_status_code(resource, verb, request_socket, fields)  # may not need depending what get_response_body returns
-    response_headers = write_response_headers(resource)
+    status_ok = str(200) in status_line.decode('ASCII')
+    response_headers = write_response_headers(resource, status_ok)
     print(status_line, response_headers)
     http_response = status_line + response_headers
-    if str(200) in status_line.decode('ASCII'):  # may not need depending what get_response_body returns
+    if status_ok:  # may not need depending what get_response_body returns
         http_response += get_response_body(resource)
+    else:
+        http_response += b'<h1>404, not found!</h1>'
 
     send_response(request_socket, http_response)
 
@@ -264,7 +267,7 @@ def get_response_body(resource):  # will need body in parsed bytes
 
     return resp_body
 
-def write_response_headers(resource):  # needs mime type, cont len, func for time stamp, and some inc of nonpersitant conn
+def write_response_headers(resource, status_ok):  # needs mime type, cont len, func for time stamp, and some inc of nonpersitant conn
     """
     Writes the headers of the response that contains the time, non-persist connection, mime type, and cont. length
 
@@ -277,8 +280,8 @@ def write_response_headers(resource):  # needs mime type, cont len, func for tim
     time_string = time_stamp.strftime('%a, %d %b %Y %H:%M:%S CST')
 
     # if file_size == None make field = 0 and type = None in bytes for 404 and 400
-    size_bytes = str(get_file_size(resource)).encode('ASCII')
-    mime_bytes = get_mime_type(resource).encode('ASCII')
+    size_bytes = str(get_file_size(resource)).encode('ASCII') if status_ok else b'24' #24 = size of 404 message
+    mime_bytes = get_mime_type(resource).encode('ASCII') if status_ok else b'text/html'
 
     response_headers = b'Connection: ' + b'Close\r\n' \
     + b'Content-Length: ' + size_bytes + b'\r\n' \
