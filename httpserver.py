@@ -55,10 +55,6 @@ def http_server_setup(port):
     try:
         while True:
             request_socket, request_address = server_socket.accept()
-            ##########################################################
-            # delete later: This is the the server sock(listen) acc the request from client
-            # it assigns values so the server knows where to send packets
-            ################################################################3
             print('connection from {0} {1}'.format(request_address[0], request_address[1]))
             # Create a new thread, and set up the handle_request method and its argument (in a tuple)
             request_handler = threading.Thread(target=handle_request, args=(request_socket,))
@@ -89,7 +85,8 @@ def handle_request(request_socket):  # complete this method to parse a request a
     print("PARSING")
     req_info = parse_request(request_socket)
     print("EXECUTING", req_info[1])
-    execute_request(request_socket, req_info[0], req_info[1], req_info[2], req_info[3])  # if I need to add more param to execute_request then add after (request_socket)*here*)
+    execute_request(request_socket, req_info[0], req_info[1], req_info[2])  # if I need to add more param to execute_request then add after (request_socket)*here*)
+
 
 def http_get_word(request_socket):
     """
@@ -97,7 +94,7 @@ def http_get_word(request_socket):
     Returns the string, and also whether it's the end of the line.
     This could be used instead of next_byte or socket.recv
 
-    :param socket.pyi http_client_socket: client data socket
+    :param socket.pyi request_socket: client data socket
     :return: (word, endOfLine)
     :rtype: Any
     :author: Eden Basso
@@ -133,6 +130,7 @@ def parse_request(request_socket):
     print("REQUEST", verb, resource, fields, body)
     return verb, resource, fields, body
 
+
 def get_request_line(request_socket):
     """
     ...
@@ -143,11 +141,12 @@ def get_request_line(request_socket):
     verb = http_get_word(request_socket)[0]
     resource = http_get_word(request_socket)[0]
 
-    #go to end of request line (so fields can be read after)
+    # go to end of request line (so fields can be read after)
     while http_get_word(request_socket)[1] == False:
         pass
 
     return verb, resource
+
 
 def get_header_fields(request_socket):
     """
@@ -158,24 +157,26 @@ def get_header_fields(request_socket):
     """
     fields = dict()
 
-    lastWord = None
-    while (lastWord := http_get_word(request_socket))[0] != b'':
-        key = lastWord[0]
+    last_word = None
+    while (last_word := http_get_word(request_socket))[0] != b'':
+        key = last_word[0]
         value = b''
 
-        while (lastWord := http_get_word(request_socket))[1] == False:
-            value += lastWord[0] + b' '
-        value += lastWord[0]
+        while (last_word := http_get_word(request_socket))[1] == False:
+            value += last_word[0] + b' '
+        value += last_word[0]
 
         fields[key] = value
 
     return fields
 
-def http_get_body(request_socket, fields):  # method should be fixed
+
+def http_get_body(request_socket, fields):
     """
     Gets the body of the client's request for good measure
 
     :param socket.pyi request_socket: socket representing TCP connection from the HTTP client_socket
+    :param bytes fields: request fields used to indicate the length of the body to be parsed through
     :return: the body of the resource as a bytes object
     :rtype: bytes
     :author: Eden Basso
@@ -201,7 +202,7 @@ def next_byte(request_socket):
     return request_socket.recv(1)
 
 
-def execute_request(request_socket, verb, resource, fields, body):  # this method should be fixed
+def execute_request(request_socket, verb, resource, fields):
     """
     Concatenates the http response and sends it or just sends the status line if client sends an unacceptable request
 
@@ -209,36 +210,32 @@ def execute_request(request_socket, verb, resource, fields, body):  # this metho
     :param bytes verb: HTTP version of the request that will be compared with the server's to ensure correct protocol usage
     :param bytes resource: the URL sent by the client that will be used to retrieve the correct file from the server
     :param dictionary fields: dictionary of fields received by the request
-    :param bytes body: contents of the request body
     :author: Eden Basso
     """
     http_response = b''
-    status_line = get_status_code(resource, verb, request_socket, fields)  # may not need depending what get_response_body returns
+    status_line = get_status_code(resource, verb, fields)
     response_headers = write_response_headers(resource)
     print(status_line, response_headers)
     http_response = status_line + response_headers
-    if str(200) in status_line.decode('ASCII'):  # may not need depending what get_response_body returns
+    if str(200) in status_line.decode('ASCII'):
         http_response += get_response_body(resource)
 
     send_response(request_socket, http_response)
 
 
-def get_status_code(resource, verb, request_socket, fields):
+def get_status_code(resource, verb, fields):
     """
     Checks the resource, headers, and http version from the client's request and returns the appropriate status code
 
     :param bytes resource: the URL from the client's request
-    :param socket.pyi request_socket: socket representing TCP connection from the HTTP client_socket
     :param verb: HTTP version that will be compared with the server's version to ensure correct protocol usage
+    :param bytes fields: request header fields used to determine if all required information is present
     :return: status such as 200 ok, 404 not found, 400 bad connection
     :rtype: bytes
     :author: Eden Basso
     """
-    # parses through resource(req) to find './abc.html' (ASCII) : GET sp URL sp ver may need to test what the resource returns
-    # needs the file path from server to compare
-    # needs to write entire status line
     status = (b'200', b'OK')
-    if ((b'Host:' not in fields)) or (verb != b'GET'):
+    if (b'Host:' not in fields) or (verb != b'GET'):
         print('400 Bad Request: resource na or headers na')
         status = (b'400', b'Bad Request')
     elif not os.path.isfile((b'.'+resource).decode('ASCII')):
@@ -247,8 +244,7 @@ def get_status_code(resource, verb, request_socket, fields):
     return b'HTTP/1.1 ' + status[0] + b' ' + status[1] + b'\r\n'
 
 
-
-def get_response_body(resource):  # will need body in parsed bytes
+def get_response_body(resource):
     """
     Gets the body from the resource and returns it to be sent to the client in an http response
 
@@ -259,12 +255,13 @@ def get_response_body(resource):  # will need body in parsed bytes
     """
     resp_body = b''
 
-    with open((b'.'+resource).decode('ASCII'), 'rb') as f:
+    with open((b'.' + resource).decode('ASCII'), 'rb') as f:
         resp_body = f.read()
 
     return resp_body
 
-def write_response_headers(resource):  # needs mime type, cont len, func for time stamp, and some inc of nonpersitant conn
+
+def write_response_headers(resource):
     """
     Writes the headers of the response that contains the time, non-persist connection, mime type, and cont. length
 
@@ -276,7 +273,6 @@ def write_response_headers(resource):  # needs mime type, cont len, func for tim
     time_stamp = datetime.datetime.utcnow()
     time_string = time_stamp.strftime('%a, %d %b %Y %H:%M:%S CST')
 
-    # if file_size == None make field = 0 and type = None in bytes for 404 and 400
     size_bytes = str(get_file_size(resource)).encode('ASCII')
     mime_bytes = get_mime_type(resource).encode('ASCII')
 
@@ -344,19 +340,3 @@ def get_file_size(file_path):  # this method will be used to get thee size of th
 main()
 
 # Replace this line with your comments on the lab
-
-#temporary
-"""
-def execute_request(http_socket, request_data):
-    request_verb = request_data[0]
-    request_resource = request_data[1]
-    request_fields = request_data[2]
-    request_body = request_data[3]
-
-    if(request_verb == 'GET'):
-        execute_request_get(http_socket, request_resource)
-    elif(request_verb == etc):
-        ...
-    else:
-        print("Unknown request:", request_verb)
-"""
