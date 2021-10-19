@@ -201,7 +201,7 @@ def next_byte(request_socket):
     return request_socket.recv(1)
 
 
-def execute_request(request_socket, verb, resource, fields, body):  # this method should be fixed
+def execute_request(request_socket, verb, resource, fields, body):
     """
     Concatenates the http response and sends it or just sends the status line if client sends an unacceptable request
     :param socket.pyi request_socket: socket representing TCP connection from the HTTP client_socket
